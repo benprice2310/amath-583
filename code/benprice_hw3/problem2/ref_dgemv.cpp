@@ -27,9 +27,8 @@
  * Initialize with random values.
  * Check for and flag incorrect cases.
  * Test prior to submission.
- * Submit C++ files ref_daxpy.cpp, ref_daxpy.hpp.
- *
- * === END LEVEL 1 BLAS FUNCTION ===
+ * 
+ * === END LEVEL 2 BLAS FUNCTION ===
  *
  */
 #include "ref_dgemv.hpp"
