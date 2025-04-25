@@ -2,7 +2,7 @@
 
 # Timestamped folder name
 timestamp=$(date +%Y%m%d_%H%M%S)
-trial_dir="build/trial_$timestamp"
+trial_dir="build/daxpy_trial_$timestamp"
 mkdir -p "$trial_dir"
 
 echo "▶️ Running DAXPY performance test → $trial_dir"
