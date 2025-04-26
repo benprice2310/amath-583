@@ -43,6 +43,22 @@ void dgemv(double a,
     size_t m = A.size();
     size_t n = A[0].size();
 
+    if (x.size() != n)
+    {
+        throw std::runtime_error("gemv error: x size must match number of columns of A.");
+    }
+    if (y.size() != m)
+    {
+        throw std::runtime_error("gemv error: y size must match number of rows of A.");
+    }
+    for (size_t i = 0; i < m; ++i)
+    {
+        if (A[i].size() != n)
+        {
+            throw std::runtime_error("gemv error: inconsistent row size in A.");
+        }
+    }
+
     for (size_t i = 0; i < m; ++i)
     {
         double temp = 0.0;

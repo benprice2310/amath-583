@@ -51,6 +51,41 @@ void dgemm(double a,
     size_t p = A[0].size();
     size_t n = B[0].size();
 
+    if (B.size() != p)
+    {
+        throw std::runtime_error("gemm error: number of rows of B must match number of columns of A.");
+    }
+    if (C.size() != m)
+    {
+        throw std::runtime_error("gemm error: number of rows of C must match number of rows of A.");
+    }
+    if (C[0].size() != n)
+    {
+        throw std::runtime_error("gemm error: number of columns of C must match number of columns of B.");
+    }
+
+    for (size_t i = 0; i < m; ++i)
+    {
+        if (A[i].size() != p)
+        {
+            throw std::runtime_error("gemm error: inconsistent row size in A.");
+        }
+    }
+    for (size_t i = 0; i < p; ++i)
+    {
+        if (B[i].size() != n)
+        {
+            throw std::runtime_error("gemm error: inconsistent row size in B.");
+        }
+    }
+    for (size_t i = 0; i < m; ++i)
+    {
+        if (C[i].size() != n)
+        {
+            throw std::runtime_error("gemm error: inconsistent row size in C.");
+        }
+    }
+
     // A = aAB + bC
     for (size_t i = 0; i < m; ++i)
     {

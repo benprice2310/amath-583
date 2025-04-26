@@ -29,6 +29,10 @@
 
 void daxpy(double a, const std::vector<double> &x, std::vector<double> &y)
 {
+    if (x.size() != y.size()) {
+        throw std::runtime_error("axpy error: x and y must have the same size.");
+    }
+    
     size_t n = x.size();
     for (size_t i = 0; i < n; i++)
     {
