@@ -1,6 +1,6 @@
 Problem 5 - Shared Object Library Instructions
 
-(All commands are executed from the project root directory.)
+(All commands are executed from the project root directory, ./benprice_hw3/)
 
 1. Compile the object files:
 g++ -c -fPIC problem1/ref_daxpy.cpp -o problem5/ref_daxpy.o
