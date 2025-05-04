@@ -16,10 +16,12 @@ void mm_ijk(T a, const std::vector<std::vector<T>> &A, const std::vector<std::ve
     {
         for (int j = 0; j < n; ++j)
         {
+            T sum = 0;
             for (int k = 0; k < p; ++k)
             {
-                C[i][j] = a * A[i][k] * B[k][j] + b * C[i][j];
+                sum += A[i][k] * B[k][j];
             }
+            C[i][j] = a * sum + b * C[i][j];
         }
     }
 }
@@ -40,10 +42,12 @@ void mm_ijk(T a, const std::vector<T> &A, const std::vector<T> &B, T b, std::vec
     {
         for (int j = 0; j < n; ++j)
         {
+            T sum = 0;
             for (int k = 0; k < p; ++k)
             {
-                C[i + j * m] += a * A[i + k * m] * B[k + j * p] + b * C[i + j * m];
+                sum += A[i + k * m] * B[k + j * p];
             }
+            C[i + j * m] = a * sum + b * C[i + j * m];
         }
     }
 }
