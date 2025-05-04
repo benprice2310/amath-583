@@ -1,14 +1,17 @@
 #!/bin/zsh
 # p2.cmpl — compile shared object and link test program
 
-echo "\n\n=== A Poor Man's Builder ==="
+clear
+echo "\n=== A Poor Man's Builder ==="
 date
 
 echo "\nCleaning up..."
-rm -f *.o *.so xgemm
+source ./p2.clean
+echo "Cleaned up"
 
 echo "\nCompiling sources with -fPIC..."
 g++ -std=c++14 -c -fPIC ref_dgemm.cpp
+g++ -std=c++14 -c -fPIC utils.cpp
 # g++ -std=c++14 -c -fPIC other_functions.cpp
 echo "Compiled sources"
 

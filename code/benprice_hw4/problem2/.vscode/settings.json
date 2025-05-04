@@ -47,5 +47,11 @@
         "unordered_map": "cpp",
         "variant": "cpp",
         "algorithm": "cpp"
+    },
+    "github.copilot.enable": {
+        "*": true,
+        "plaintext": false,
+        "markdown": false,
+        "scminput": false
     }
 }
