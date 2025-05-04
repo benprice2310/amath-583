@@ -46,7 +46,8 @@
         "stack": "cpp",
         "unordered_map": "cpp",
         "variant": "cpp",
-        "algorithm": "cpp"
+        "algorithm": "cpp",
+        "type_traits": "cpp"
     },
     "github.copilot.enable": {
         "*": true,

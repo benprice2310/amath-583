@@ -7,6 +7,36 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <random>
+#include <type_traits>
+
+// Floating-point version
+template <typename T>
+typename std::enable_if<std::is_floating_point<T>::value, std::vector<T>>::type
+generateRandomMatrix(int rows, int cols, T lb = T(0), T ub = T(1))
+{
+    std::vector<T> mat(rows * cols);
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<T> dist(lb, ub);
+    for (T &val : mat)
+        val = dist(gen);
+    return mat;
+}
+
+// Integer version
+template <typename T>
+typename std::enable_if<std::is_integral<T>::value, std::vector<T>>::type
+generateRandomMatrix(int rows, int cols, T lb = T(0), T ub = T(1))
+{
+    std::vector<T> mat(rows * cols);
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<T> dist(lb, ub);
+    for (T &val : mat)
+        val = dist(gen);
+    return mat;
+}
 
 // Print a 2D std::vector with labeled rows and aligned columns
 template <typename T>
@@ -131,7 +161,8 @@ void printRowMajorVectorMatrix(const std::vector<T> &vec, int rows, int cols, in
 // Print a formatted section header to the console
 inline void printSectionTitle(const std::string &title, int width = 60)
 {
-    std::cout << std::string(width, '=') << "\n";
+    std::cout << "\n"
+              << std::string(width, '=') << "\n";
     int pad = (width - static_cast<int>(title.length())) / 2;
     std::cout << std::string(pad, ' ') << title << "\n";
     std::cout << std::string(width, '=') << "\n";
@@ -140,7 +171,8 @@ inline void printSectionTitle(const std::string &title, int width = 60)
 // Print a lighter section header
 inline void printHeader(const std::string &subtitle, int width = 60)
 {
-    std::cout << std::string(width, '-') << "\n";
+    std::cout << "\n"
+              << std::string(width, '-') << "\n";
     int pad = (width - static_cast<int>(subtitle.length())) / 2;
     std::cout << std::string(pad, ' ') << subtitle << "\n";
     std::cout << std::string(width, '-') << "\n";
