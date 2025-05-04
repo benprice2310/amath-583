@@ -1,320 +1,117 @@
-// problem2.cpp
-
+// parallel_gemm.cpp
 #include <iostream>
-#include <chrono>
 #include <vector>
-#include <sstream>
-#include <string>
-#include <iomanip>
+#include <chrono>
 #include <random>
+#include <fstream>
+#include <future>
 #include "ref_dgemm.hpp"
 #include "utils.hpp"
 
-const int PRINT_WIDTH = 6;
+const int ntrials = 3;
+const int MAX_SIZE = 200;
 
-void demoSingleMatrixCase()
+// Benchmark function
+struct Timings
 {
-    std::cout << "\n"
-              << std::string(80, '-');
-    int m = 5;
-    int n = 3;
-    int p = 4;
+    int size;
+    long double ijk_f, jki_f, kij_f;
+    long double ijk_d, jki_d, kij_d;
+};
 
-    int a = 7;
-    int b = 8;
+Timings benchmark(int x)
+{
+    int m = x, n = x, p = x;
+    double a_d = 2.0, b_d = 3.0;
+    float a_f = static_cast<float>(a_d);
+    float b_f = static_cast<float>(b_d);
 
-    // 2D vectors for testing
-    std::vector<std::vector<int>> A_2D{
-        {-4, -5, 1, -4},
-        {-4, -1, -2, -4},
-        {-1, 0, -1, -1},
-        {4, -1, -5, -3},
-        {3, 2, 5, 0}};
-    std::vector<std::vector<int>> B_2D{
-        {-2, 3, 5},
-        {-5, 3, -1},
-        {5, -1, 5},
-        {-5, 1, -2}};
-    std::vector<std::vector<int>> C_2D{
-        {2, -4, 1},
-        {2, -4, 4},
-        {0, 5, 2},
-        {2, -4, -3},
-        {2, -5, -1}};
+    long double t_ijk_f = 0.0, t_jki_f = 0.0, t_kij_f = 0.0;
+    long double t_ijk_d = 0.0, t_jki_d = 0.0, t_kij_d = 0.0;
 
-    // Column major vectors for testing
-    std::vector<int> A_cm{-4, -4, -1, 4, 3, -5, -1, 0, -1, 2, 1, -2, -1, -5, 5, -4, -4, -1, -3, 0};
-    std::vector<int> B_cm{-2, 5, 5, -5, 3, -3, -1, 1, 5, -1, 5, -2};
-    std::vector<int> C_cm_REF{2, 2, 0, 2, 2, -4, -4, 5, -4, -5, 1, 4, 2, -3, -1};
-    std::vector<int> C_cm = C_cm_REF;
+    for (int t = 0; t < ntrials; ++t)
+    {
+        auto A_d = generateRandomMatrix<double>(m, p, -9.0, 9.0);
+        auto B_d = generateRandomMatrix<double>(p, n, -9.0, 9.0);
+        auto C_d = generateRandomMatrix<double>(m, n, -9.0, 9.0);
 
-    std::cout << "\n=== Sizes ===\n";
-    std::cout << "size A: [m, p] = [" << A_2D.size() << ", " << A_2D[0].size() << "]\n";
-    std::cout << "size B: [p, n] = [" << B_2D.size() << ", " << B_2D[0].size() << "]\n";
-    std::cout << "size C: [m, n] = [" << C_2D.size() << ", " << C_2D[0].size() << "]\n\n";
+        std::vector<float> A_f(A_d.size()), B_f(B_d.size()), C_f(C_d.size());
+        std::transform(A_d.begin(), A_d.end(), A_f.begin(), [](double val)
+                       { return static_cast<float>(val); });
+        std::transform(B_d.begin(), B_d.end(), B_f.begin(), [](double val)
+                       { return static_cast<float>(val); });
+        std::transform(C_d.begin(), C_d.end(), C_f.begin(), [](double val)
+                       { return static_cast<float>(val); });
 
-    // printSectionHeader("A 2D Matrix");
-    // print2DVector(A_2D);
-    printSectionTitle("Demo Single Matrix Case");
-    printSubheaderLeft("A Column Major Flattend Matrix");
-    printColumnMajorVectorMatrix(A_cm, m, p);
-    printSubheaderLeft("B Column Major Flattend Matrix");
-    printColumnMajorVectorMatrix(B_cm, p, n);
-    printSubheaderLeft("C Column Major Flattend Matrix");
-    printColumnMajorVectorMatrix(C_cm, m, n);
-    printSubheaderLeft("Other properties");
-    std::cout << "a = " << a << "\n";
-    std::cout << "b = " << b << "\n";
-    std::cout << "m = " << m << "\n";
-    std::cout << "n = " << n << "\n";
-    std::cout << "p = " << p << "\n";
+        std::vector<float> Cf1 = C_f, Cf2 = C_f, Cf3 = C_f;
+        std::vector<double> Cd1 = C_d, Cd2 = C_d, Cd3 = C_d;
 
-    // Apply {ijk} calculations
-    printHeader("Apply mm_ijk: C = a*A*B + b*C");
-    mm_ijk(a, A_cm, B_cm, b, C_cm, m, p, n);
-    printSubheaderLeft("Adjusted C Matrix");
-    printColumnMajorVectorMatrix(C_cm, m, n);
+        // float ijk
+        auto t1 = std::chrono::high_resolution_clock::now();
+        mm_ijk(a_f, A_f, B_f, b_f, Cf1, m, p, n);
+        auto t2 = std::chrono::high_resolution_clock::now();
+        t_ijk_f += std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
 
-    // Apply {jki} calculations
-    C_cm = C_cm_REF;
-    printHeader("Apply mm_jki: C = a*A*B + b*C");
-    mm_jki(a, A_cm, B_cm, b, C_cm, m, p, n);
-    printSubheaderLeft("Adjusted C Matrix");
-    printColumnMajorVectorMatrix(C_cm, m, n);
+        // float jki
+        t1 = std::chrono::high_resolution_clock::now();
+        mm_jki(a_f, A_f, B_f, b_f, Cf2, m, p, n);
+        t2 = std::chrono::high_resolution_clock::now();
+        t_jki_f += std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
 
-    // Apply {kij} calculations
-    C_cm = C_cm_REF;
-    printHeader("Apply mm_kij: C = a*A*B + b*C");
-    mm_kij(a, A_cm, B_cm, b, C_cm, m, p, n);
-    printSubheaderLeft("Adjusted C Matrix");
-    printColumnMajorVectorMatrix(C_cm, m, n);
+        // float kij
+        t1 = std::chrono::high_resolution_clock::now();
+        mm_kij(a_f, A_f, B_f, b_f, Cf3, m, p, n);
+        t2 = std::chrono::high_resolution_clock::now();
+        t_kij_f += std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
 
-    std::cout << std::string(80, '-') << "\n";
+        // double ijk
+        t1 = std::chrono::high_resolution_clock::now();
+        mm_ijk(a_d, A_d, B_d, b_d, Cd1, m, p, n);
+        t2 = std::chrono::high_resolution_clock::now();
+        t_ijk_d += std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
+
+        // double jki
+        t1 = std::chrono::high_resolution_clock::now();
+        mm_jki(a_d, A_d, B_d, b_d, Cd2, m, p, n);
+        t2 = std::chrono::high_resolution_clock::now();
+        t_jki_d += std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
+
+        // double kij
+        t1 = std::chrono::high_resolution_clock::now();
+        mm_kij(a_d, A_d, B_d, b_d, Cd3, m, p, n);
+        t2 = std::chrono::high_resolution_clock::now();
+        t_kij_d += std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
+    }
+
+    return Timings{
+        x,
+        t_ijk_f / ntrials, t_jki_f / ntrials, t_kij_f / ntrials,
+        t_ijk_d / ntrials, t_jki_d / ntrials, t_kij_d / ntrials};
 }
 
 int main()
 {
-    // START OF PROGRAM
-    std::cout << "\n";
-    printSectionTitle("BEGIN PROBLEM 2");
-    std::cout << "\n";
+    printSectionTitle("BEGIN PROBLEM 2 (Parallel)");
 
-    // demoSingleMatrixCase();
-    // declare some stuff
-    int m;
-    int n;
-    int p;
-    float a_float;
-    float b_float;
-    std::vector<float> A_float;
-    std::vector<float> B_float;
-    std::vector<float> C_float;
-    double a_double;
-    double b_double;
-    std::vector<double> A_double;
-    std::vector<double> B_double;
-    std::vector<double> C_double;
+    std::ofstream out("timing_results_parallel.csv");
+    out << "size,ijk_float,jki_float,kij_float,ijk_double,jki_double,kij_double\n";
 
-    // total trial timer
-    auto start_trial = std::chrono::high_resolution_clock::now();
-    auto stop_trial = std::chrono::high_resolution_clock::now();
+    std::vector<std::future<Timings>> futures;
 
-    // permutation {ijk} timers
-    auto start_ijk_float = std::chrono::high_resolution_clock::now();
-    auto stop_ijk_float = std::chrono::high_resolution_clock::now();
-
-    auto start_ijk_double = std::chrono::high_resolution_clock::now();
-    auto stop_ijk_double = std::chrono::high_resolution_clock::now();
-
-    // permutation {jki} timers
-    auto start_jki_float = std::chrono::high_resolution_clock::now();
-    auto stop_jki_float = std::chrono::high_resolution_clock::now();
-
-    auto start_jki_double = std::chrono::high_resolution_clock::now();
-    auto stop_jki_double = std::chrono::high_resolution_clock::now();
-
-    // permutation {kij} timers
-    auto start_kij_float = std::chrono::high_resolution_clock::now();
-    auto stop_kij_float = std::chrono::high_resolution_clock::now();
-
-    auto start_kij_double = std::chrono::high_resolution_clock::now();
-    auto stop_kij_double = std::chrono::high_resolution_clock::now();
-
-    // duration variables
-    auto duration_ijk_float = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_ijk_float - start_ijk_float);
-    auto duration_ijk_double = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_ijk_double - start_ijk_double);
-
-    auto duration_jki_float = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_jki_float - start_jki_float);
-    auto duration_jki_double = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_jki_double - start_jki_double);
-
-    auto duration_kij_float = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_kij_float - start_kij_float);
-    auto duration_kij_double = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_kij_double - start_kij_double);
-
-    // total duration
-    auto duration_trial = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_trial - start_trial);
-
-    // elapsed time variables
-    long double elapsed_time_trial = 0.L;
-    long double elapsed_time_ijk_float = 0.L;
-    long double elapsed_time_ijk_double = 0.L;
-    long double elapsed_time_jki_float = 0.L;
-    long double elapsed_time_jki_double = 0.L;
-    long double elapsed_time_kij_float = 0.L;
-    long double elapsed_time_kij_double = 0.L;
-
-    // average time variables
-    long double avg_time_trial;
-    long double avg_time_ijk_float;
-    long double avg_time_ijk_double;
-    long double avg_time_jki_float;
-    long double avg_time_jki_double;
-    long double avg_time_kij_float;
-    long double avg_time_kij_double;
-
-    const int ntrials = 3;
-
-    for (int x = 2; x < 11; ++x)
+    for (int size = 2; size <= MAX_SIZE; ++size)
     {
-        printSectionTitle("Matrix size " + std::to_string(x) + " x " + std::to_string(x));
-        for (int t = 0; t < ntrials; ++t)
-        {
-            printSubheaderLeft("Trial " + std::to_string(t + 1) + " of " + std::to_string(ntrials) + " (m,n,p = " + std::to_string(x) + ")");
-            start_trial = std::chrono::high_resolution_clock::now();
-
-            // define parameters
-            m = x;
-            n = x;
-            p = x;
-            a_double = 2.0;
-            b_double = 3.0;
-
-            // generate random matrices
-            A_double = generateRandomMatrix<double>(m, p, -9.0, 9.0);
-            B_double = generateRandomMatrix<double>(p, n, -9.0, 9.0);
-            C_double = generateRandomMatrix<double>(m, n, -9.0, 9.0);
-
-            // convert double to float
-            a_float = static_cast<float>(a_double);
-            b_float = static_cast<float>(b_double);
-            std::vector<float> A_float(A_double.size());
-            std::transform(A_double.begin(), A_double.end(), A_float.begin(),
-                           [](double d)
-                           { return static_cast<float>(d); });
-            std::vector<float> B_float(B_double.size());
-            std::transform(B_double.begin(), B_double.end(), B_float.begin(),
-                           [](double d)
-                           { return static_cast<float>(d); });
-            std::vector<float> C_float(C_double.size());
-            std::transform(C_double.begin(), C_double.end(), C_float.begin(),
-                           [](double d)
-                           { return static_cast<float>(d); });
-
-            // Allocate C matrix copies
-            std::vector<float> Cf1 = C_float;
-            std::vector<float> Cf2 = C_float;
-            std::vector<float> Cf3 = C_float;
-            std::vector<double> Cd1 = C_double;
-            std::vector<double> Cd2 = C_double;
-            std::vector<double> Cd3 = C_double;
-
-            // some printing
-            if (x < 5)
-            {
-                printSubheaderLeft("A Row Major Flattend Matrix");
-                printRowMajorVectorMatrix(A_float, m, p);
-                printSubheaderLeft("B Row Major Flattend Matrix");
-                printRowMajorVectorMatrix(B_float, p, n);
-                printSubheaderLeft("C Row Major Flattend Matrix");
-                printRowMajorVectorMatrix(C_float, m, n);
-            }
-
-            // perform float calculations
-            start_ijk_float = std::chrono::high_resolution_clock::now();
-            mm_ijk(a_float, A_float, B_float, b_float, Cf1, m, p, n);
-            stop_ijk_float = std::chrono::high_resolution_clock::now();
-
-            start_jki_float = std::chrono::high_resolution_clock::now();
-            mm_ijk(a_float, A_float, B_float, b_float, Cf2, m, p, n);
-            stop_ijk_float = std::chrono::high_resolution_clock::now();
-
-            start_kij_float = std::chrono::high_resolution_clock::now();
-            mm_ijk(a_float, A_float, B_float, b_float, Cf3, m, p, n);
-            stop_ijk_float = std::chrono::high_resolution_clock::now();
-
-            // perform double calculations
-            start_ijk_double = std::chrono::high_resolution_clock::now();
-            mm_ijk(a_double, A_double, B_double, b_double, Cd1, m, p, n);
-            stop_ijk_double = std::chrono::high_resolution_clock::now();
-
-            start_jki_double = std::chrono::high_resolution_clock::now();
-            mm_jki(a_double, A_double, B_double, b_double, Cd2, m, p, n);
-            stop_jki_double = std::chrono::high_resolution_clock::now();
-
-            start_kij_double = std::chrono::high_resolution_clock::now();
-            mm_kij(a_double, A_double, B_double, b_double, Cd3, m, p, n);
-            stop_kij_double = std::chrono::high_resolution_clock::now();
-
-            // end do work
-            stop_trial = std::chrono::high_resolution_clock::now();
-
-            // calculate durations
-            duration_trial = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_trial - start_trial);
-            duration_ijk_float = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_ijk_float - start_ijk_float);
-            duration_ijk_double = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_ijk_double - start_ijk_double);
-            duration_jki_float = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_jki_float - start_jki_float);
-            duration_jki_double = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_jki_double - start_jki_double);
-            duration_kij_float = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_kij_float - start_kij_float);
-            duration_kij_double = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_kij_double - start_kij_double);
-
-            // calculate elapsed times
-            elapsed_time_trial += duration_trial.count();
-            elapsed_time_ijk_float += duration_ijk_float.count();
-            elapsed_time_ijk_double += duration_ijk_double.count();
-            elapsed_time_jki_float += duration_jki_float.count();
-            elapsed_time_jki_double += duration_jki_double.count();
-            elapsed_time_kij_float += duration_kij_float.count();
-            elapsed_time_kij_double += duration_kij_double.count();
-
-            std::cout << "Elapsed time: " << duration_trial.count() / 1e9 << " seconds\n";
-        }
-        // calculate average times
-        avg_time_trial = elapsed_time_trial / ntrials;
-        avg_time_ijk_float = elapsed_time_ijk_float / ntrials;
-        avg_time_ijk_double = elapsed_time_ijk_double / ntrials;
-        avg_time_jki_float = elapsed_time_jki_float / ntrials;
-        avg_time_jki_double = elapsed_time_jki_double / ntrials;
-        avg_time_kij_float = elapsed_time_kij_float / ntrials;
-        avg_time_kij_double = elapsed_time_kij_double / ntrials;
-
-        // save or report findings
-        // printSubheaderLeft("Average time for " + std::to_string(ntrials) + " trials" + " (size = " + std::to_string(x) + ") " + std::to_string(avg_time) + " ns");
-
-        // print results
-        printHeader("<float> Avg Time (ntrials = " + std::to_string(ntrials) + ", size = " + std::to_string(x) + ")");
-        std::cout << "\nt_avg_float for " << ntrials << " trials (ijk): " << avg_time_ijk_float << " ns\n";
-        std::cout << "t_avg_float for " << ntrials << " trials (jki): " << avg_time_jki_float << " ns\n";
-        std::cout << "t_avg_float for " << ntrials << " trials (kij): " << avg_time_kij_float << " ns\n";
-
-        printHeader("<double> Avg Time (ntrials = " + std::to_string(ntrials) + ", size = " + std::to_string(x) + ")");
-        std::cout << "\nt_avg_double for " << ntrials << " trials (ijk): " << avg_time_ijk_double << " ns\n";
-        std::cout << "t_avg_double for " << ntrials << " trials (jki): " << avg_time_jki_double << " ns\n";
-        std::cout << "t_avg_double for " << ntrials << " trials (kij): " << avg_time_kij_double << " ns\n";
-
-        printHeader("Total Avg Time (ntrials = " + std::to_string(ntrials) + ", size = " + std::to_string(x) + ")");
-        std::cout << "\nt_avg for " << ntrials << " trials (x = " << x << "): " << avg_time_trial << " ns\n";
-
-        // zero time again
-        elapsed_time_trial = 0.L;
-        elapsed_time_ijk_float = 0.L;
-        elapsed_time_ijk_double = 0.L;
-        elapsed_time_jki_float = 0.L;
-        elapsed_time_jki_double = 0.L;
-        elapsed_time_kij_float = 0.L;
-        elapsed_time_kij_double = 0.L;
+        futures.emplace_back(std::async(std::launch::async, benchmark, size));
     }
 
-    // END OF PROGRAM
-    printSectionTitle("END PROBLEM 2");
-    std::cout << "\n";
+    for (auto &f : futures)
+    {
+        Timings t = f.get();
+        out << t.size << ","
+            << t.ijk_f << "," << t.jki_f << "," << t.kij_f << ","
+            << t.ijk_d << "," << t.jki_d << "," << t.kij_d << "\n";
+    }
+
+    out.close();
+    printSectionTitle("END PROBLEM 2 (Parallel)");
     return 0;
 }
