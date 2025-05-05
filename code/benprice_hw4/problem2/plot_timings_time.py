@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Load CSV data
-df = pd.read_csv("20250504_1611_timing_results_parallel.csv")
+df = pd.read_csv("timing_results_parallel.csv")
 permutations = ["ijk", "jki", "kij"]
 
 for perm in permutations:
@@ -28,10 +28,10 @@ for perm in permutations:
     plt.ylabel("Time (ns)")
     plt.title(f"GEMM Timing - Loop Order: {perm}")
     plt.grid(True, which="both", linestyle="--", linewidth=0.5)
-    plt.ylim((1e0, 1e8))
+    plt.ylim((1e0, 1e10))
     plt.legend()
     plt.tight_layout()
-    plt.savefig(f"gemm_timing_{perm}.png", dpi=300)
+    plt.savefig(f"gemm_timing_{perm}.png", dpi=600)
     # plt.close()
 
 plt.show()

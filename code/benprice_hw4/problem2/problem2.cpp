@@ -9,7 +9,7 @@
 #include "utils.hpp"
 
 const int ntrials = 3;
-const int MAX_SIZE = 200;
+const int MAX_SIZE = 513;
 
 // Benchmark function
 struct Timings
@@ -22,29 +22,38 @@ struct Timings
 Timings benchmark(int x)
 {
     int m = x, n = x, p = x;
-    double a_d = 2.0, b_d = 3.0;
-    float a_f = static_cast<float>(a_d);
-    float b_f = static_cast<float>(b_d);
+
+    double a_d = 3.0, b_d = 2.0;
+
+    float a_f = 3.f, b_f = 2.f;
 
     long double t_ijk_f = 0.0, t_jki_f = 0.0, t_kij_f = 0.0;
     long double t_ijk_d = 0.0, t_jki_d = 0.0, t_kij_d = 0.0;
 
+    auto A_d = generateRandomMatrix<double>(m, p);
+    auto B_d = generateRandomMatrix<double>(p, n);
+    auto C_d = generateRandomMatrix<double>(m, n);
+
+    auto A_f = generateRandomMatrix<float>(m, p);
+    auto B_f = generateRandomMatrix<float>(p, n);
+    auto C_f = generateRandomMatrix<float>(m, n);
+
+    std::vector<float> Cf1 = C_f, Cf2 = C_f, Cf3 = C_f;
+    std::vector<double> Cd1 = C_d, Cd2 = C_d, Cd3 = C_d;
+
     for (int t = 0; t < ntrials; ++t)
     {
-        auto A_d = generateRandomMatrix<double>(m, p, -9.0, 9.0);
-        auto B_d = generateRandomMatrix<double>(p, n, -9.0, 9.0);
-        auto C_d = generateRandomMatrix<double>(m, n, -9.0, 9.0);
+        if (x == 3)
+        { // Small size print for debugging
+            printHeader("Trial " + std::to_string(t + 1));
 
-        std::vector<float> A_f(A_d.size()), B_f(B_d.size()), C_f(C_d.size());
-        std::transform(A_d.begin(), A_d.end(), A_f.begin(), [](double val)
-                       { return static_cast<float>(val); });
-        std::transform(B_d.begin(), B_d.end(), B_f.begin(), [](double val)
-                       { return static_cast<float>(val); });
-        std::transform(C_d.begin(), C_d.end(), C_f.begin(), [](double val)
-                       { return static_cast<float>(val); });
-
-        std::vector<float> Cf1 = C_f, Cf2 = C_f, Cf3 = C_f;
-        std::vector<double> Cd1 = C_d, Cd2 = C_d, Cd3 = C_d;
+            std::cout << "\nMatrix A (float):\n";
+            printColumnMajorVectorMatrix(A_f, m, p);
+            std::cout << "\nMatrix B (float):\n";
+            printColumnMajorVectorMatrix(B_f, p, n);
+            std::cout << "\n\nMatrix C (float) BEFORE:\n";
+            printColumnMajorVectorMatrix(Cf1, m, n);
+        }
 
         // float ijk
         auto t1 = std::chrono::high_resolution_clock::now();
@@ -63,6 +72,18 @@ Timings benchmark(int x)
         mm_kij(a_f, A_f, B_f, b_f, Cf3, m, p, n);
         t2 = std::chrono::high_resolution_clock::now();
         t_kij_f += std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
+
+        if (x == 3)
+        {
+            std::cout << "\nPerform calculations...";
+            printSubheaderLeft("Results for float");
+            std::cout << "\nMatrix C (float) AFTER mm_ijk:\n";
+            printColumnMajorVectorMatrix(Cf1, m, n);
+            std::cout << "\nMatrix C (float) AFTER mm_jki:\n";
+            printColumnMajorVectorMatrix(Cf2, m, n);
+            std::cout << "\nMatrix C (float) AFTER mm_kij:\n";
+            printColumnMajorVectorMatrix(Cf3, m, n);
+        }
 
         // double ijk
         t1 = std::chrono::high_resolution_clock::now();
@@ -101,6 +122,7 @@ int main()
     for (int size = 2; size <= MAX_SIZE; ++size)
     {
         futures.emplace_back(std::async(std::launch::async, benchmark, size));
+        std::cout << "Launched benchmark for size: " << size << std::endl;
     }
 
     for (auto &f : futures)
@@ -109,6 +131,7 @@ int main()
         out << t.size << ","
             << t.ijk_f << "," << t.jki_f << "," << t.kij_f << ","
             << t.ijk_d << "," << t.jki_d << "," << t.kij_d << "\n";
+        std::cout << "Completed benchmark for size: " << t.size << std::endl;
     }
 
     out.close();

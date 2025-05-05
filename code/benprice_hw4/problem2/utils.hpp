@@ -10,6 +10,21 @@
 #include <random>
 #include <type_traits>
 
+// Deterministic pattern matrix generator for benchmarking
+template <typename T>
+std::vector<T> generatePatternMatrix(int rows, int cols)
+{
+    std::vector<T> mat(rows * cols);
+    for (int j = 0; j < cols; ++j)
+    {
+        for (int i = 0; i < rows; ++i)
+        {
+            mat[i + j * rows] = static_cast<T>((i + 1) * (j + 1));
+        }
+    }
+    return mat;
+}
+
 // Floating-point version
 template <typename T>
 typename std::enable_if<std::is_floating_point<T>::value, std::vector<T>>::type
