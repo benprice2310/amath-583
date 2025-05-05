@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+
+# Random
+code/benprice_hw4/problem5/output/*.bin

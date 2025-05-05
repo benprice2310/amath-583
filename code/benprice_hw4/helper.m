@@ -118,3 +118,20 @@ C = A + B
 D = A * B
 
 norm(C, inf)
+
+
+%% Problem 6
+clearvars;
+close all;
+clc;
+
+
+A = [     1,     2,     3
+         -4,     0,   5.5
+       3.14, -2.71,     0];
+
+coder.rowMajor
+A(1,3)
+
+coder.columnMajor
+A(3,1)
