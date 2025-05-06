@@ -1,0 +1,17 @@
+#!/bin/zsh
+# all_builds.clean — clean all build artifacts recursively in benprice_hw4_dev
+
+echo "\n=== Cleaning all build artifacts and config folders in benprice_hw4_dev ==="
+
+# Navigate to the script directory (optional safety)
+cd "$(dirname "$0")"
+
+# Remove build files
+echo "\nRemoving object, shared, binary, and executable files..."
+find . \( -name "*.o" -o -name "*.so" -o -name "xprob*" -o -name "*.bin" \) -type f -print -delete
+
+# Remove .vscode folders
+echo "\nRemoving .vscode folders..."
+find . -type d -name ".vscode" -print -exec rm -rf {} +
+
+echo "\nCleanup complete."
