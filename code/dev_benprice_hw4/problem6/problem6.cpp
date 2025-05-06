@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 
     /* Begin Problem 6 Actually Here */
 
-    const int ntrials = 10;
+    const int ntrials = 3;
     std::vector<int> sizes = {16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192};
 
     std::ofstream log("output/swap_timings.csv");
