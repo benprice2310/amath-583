@@ -1,0 +1,11 @@
+#!/bin/zsh
+# p2.clean - clean up object files and shared library
+
+removed_files=($(rm -v -f *.o *.so xgemm 2> /dev/null))
+
+if [[ ${#removed_files[@]} -gt 0 ]]; then
+    echo "  Removed file(s):"
+    for file in "${removed_files[@]}"; do
+        echo "  ├⎯ $file"
+    done
+fi

@@ -1,0 +1,31 @@
+#!/bin/zsh
+# p5.cmpl - compile and link the shared library and executable
+
+# initial setup
+clear
+echo "\n=== A Poor Man's Builder ==="
+date
+
+# clean up old files
+echo "\nCleaning up..."
+source ./p6.clean
+echo "Cleaned up"
+
+# compile the shared library
+echo "\nCompiling sources with -fPIC..."
+g++ -std=c++14 -fPIC -c utils.cpp matrix_class.cpp
+echo "Compiled sources"
+
+# build the shared library
+echo "\nCreating shared library..."
+g++ -shared -o libmatrix_utils.so utils.o matrix_class.o
+echo "Built shared object library"
+ls -lstr libmatrix_utils.so
+
+# link the executable
+echo "\nLinking executable..."
+g++ -std=c++14 -o xproblem6 problem6.cpp -I. -L. -lmatrix_utils
+echo "Done. Built program binary:"
+ls -lstr xproblem6
+
+echo "\n..."
