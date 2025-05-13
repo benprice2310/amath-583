@@ -13,15 +13,15 @@ fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 8))
 
 # 1) Time vs n
 ax1.loglog(n, time_ms, "o-")  # no basex/basey here
-ax1.set_xscale("log", base=2)  # x‐axis in base-2
-ax1.set_yscale("log", base=10)  # y‐axis in base-10
+ax1.set_xscale("log", base=2)  # x‐axis log base 2
+ax1.set_yscale("log", base=10)  # y‐axis log base 10
 ax1.set_xlabel("Matrix size n")
 ax1.set_ylabel("Avg time (ms)")
 ax1.set_title("Strassen Multiply: Time vs n")
 ax1.grid(True, which="both", ls="--", alpha=0.5)
 
 # 2) GFLOP/s vs n
-ax2.loglog(n, gflops, "s-")  # no basex/basey
+ax2.loglog(n, gflops, "s-", color="tab:orange")
 ax2.set_xscale("log", base=2)
 ax2.set_yscale("log", base=10)
 ax2.set_xlabel("Matrix size n")

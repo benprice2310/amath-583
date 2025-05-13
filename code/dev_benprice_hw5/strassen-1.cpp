@@ -42,7 +42,7 @@ vector<vector<T>> subtractMatrix(const vector<vector<T>> &A, const vector<vector
 template <typename T>
 vector<vector<T>> strassenMultiply(const vector<vector<T>> &A, const vector<vector<T>> &B)
 {
-// write this code
+    // write this code
 }
 
 template <typename T>
